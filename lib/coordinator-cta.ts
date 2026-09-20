@@ -3,8 +3,16 @@ export type CoordinatorChoice = {
   label: string;
 };
 
-export const CTA_PROMPT =
-  "What next? Pick one of these choices. Do not ask a yes/no like “Would you like to call this site now?”";
+// Recommended by Norma — fixed with Cursor Grok 4.6 via Cursor
+export const CTA_PROMPT = [
+  "You are prompting the ARCA wildfire coordinator (the human on Telegram or Studio) after a briefing or tool result.",
+  "They must pick exactly one next action from the lists below. Do not ask a yes/no like “Would you like to call this site now?”",
+  "Return one concise CTA sentence.",
+  "Briefing choices: 1. Look up a site 2. Set Confine 3. Set Evacuate 4. Request a call (Approve button comes next — typing Call is not approval) 5. Log a farmer report.",
+  "After lookup without a call: 1. Set Confine 2. Set Evacuate 3. Look up another site.",
+  "After lookup when a call is allowed: 1. Request a call (Approve button comes next — typing Call is not approval) 2. Look up another site 3. Log a farmer report.",
+  "After a call request: 1. Tap Approve on the approval card (Telegram Approve/Deny or Studio Approve) 2. Deny / cancel.",
+].join(" ");
 
 export function briefingChoices(): CoordinatorChoice[] {
   return [

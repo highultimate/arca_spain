@@ -45,7 +45,9 @@ Phones and Telegram chat ids come from `.env.local` only. Seed data has no hardc
 | Source | What the demo actually uses |
 |---|---|
 | Deepfire | Live Catalonia **hotspots** if `DEEPFIRE_*` works. Hour rings on the map are a labelled **DEMO ensemble**, not a live spread perimeter. |
-| Official facilities | Public APIs, **no API key**. Downloaded into `data/official/facilities.json` by `npm run data:refresh`. The app reads that snapshot; it does not fetch schools, care homes, CAPs or the hospital on each page load. Checked-in scope is Bages. Hospital beds come from the Ministry’s public Excel, only on a unique name match. Capacity ≠ occupancy. See `data/official/README.md`. |
+| NASA FIRMS | Second opinion on hotspots if `FIRMS_MAP_KEY` is set. Two feeds agreeing pins nearby sites to the top. |
+| Talaia | Live exposure inside the demo fire shape if `TALAIA_API_KEY` works. Schools, care homes, hospitals, CAPs, farms, contacts. Capacity ≠ occupancy. Missing or rejected key → official Bages snapshot. |
+| Official facilities | Public APIs, **no API key**. Downloaded into `data/official/facilities.json` by `npm run data:refresh`. Used when Talaia is down. Checked-in scope is Bages. Hospital beds come from the Ministry’s public Excel, only on a unique name match. Capacity ≠ occupancy. See `data/official/README.md`. |
 | Livestock registry | Public SODA `7bpt-5azk`. Extra Bages farms when the pull succeeds. Capacity ≠ animals present. |
 | OSM | Leftover care-home **seed**. Not the official snapshot, not a live Overpass query, not the pet-evac list. |
 | Pet shelters | `config/shelters.json` — coordinator-configured. Not live OSM protectoras. |
@@ -75,7 +77,7 @@ npm run demo:reset                   # clean Sunday fixture
 - `:3000` alone is enough to look at the console.
 - `:4111` is required to chat with ARCA in Studio or receive Telegram `/briefing` locally. Local Telegram is **polling**. No ngrok for that path.
 - `npm run mastra:studio` is UI only; it expects a backend already running.
-- Pings: `npm run nebius:ping`, `npm run telegram:ping` (username, never the token).
+- Pings: `npm run nebius:ping`, `npm run talaia:ping` (prefix only), `npm run telegram:ping` (username, never the token).
 
 Full Mastra notes: `README.md` → **mastra:dev**.
 
@@ -86,6 +88,8 @@ Copy from `.env.example`. Do not put values in git.
 **Useful local demo**
 
 - `DEEPFIRE_CLIENT_ID`, `DEEPFIRE_CLIENT_SECRET`, `DEEPFIRE_API_BASE_URL`
+- `TALAIA_API_KEY`, `TALAIA_URL`
+- `FIRMS_MAP_KEY`
 - `NEBIUS_API_KEY`, `NEBIUS_BASE_URL`, `NEBIUS_MODEL`
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`
 - `COORDINATOR_TELEGRAM_CHAT_ID`, `TELEGRAM_BACKUP_CHAT_ID` — chat ids after `/start`, not phones

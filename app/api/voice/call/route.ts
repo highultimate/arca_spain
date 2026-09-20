@@ -1,14 +1,46 @@
+import { timingSafeEqual } from "node:crypto";
 import { resolveCallPermission } from "@/lib/call-gate";
-import { approveSiteCall, denySiteCall, listVoiceSummaries, requestSiteCall } from "@/lib/voice-calls";
+import {
+  approveSiteCall,
+  denySiteCall,
+  listVoiceSummaries,
+  requestSiteCall,
+  toPublicVoiceSummary,
+} from "@/lib/voice-calls";
 import { getVoiceStatus } from "@/lib/voice-status";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+function configuredVoiceAccessSecret(): string {
+  return process.env.CRON_SECRET?.trim() || process.env.ARCA_API_SECRET?.trim() || "";
+}
+
+function secretMatches(provided: string, expected: string): boolean {
+  const left = Buffer.from(provided);
+  const right = Buffer.from(expected);
+  if (left.length === 0 || left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+function hasVoiceCallAccess(request: Request): boolean {
+  // Recommended by Norma — fixed with Cursor Grok 4.6 via Cursor
+  const expected = configuredVoiceAccessSecret();
+  if (!expected) return false;
+  const auth = request.headers.get("authorization") ?? "";
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : "";
+  const headerSecret = request.headers.get("x-arca-secret") ?? "";
+  return secretMatches(bearer, expected) || secretMatches(headerSecret, expected);
+}
+
+export async function GET(request: Request) {
+  if (!hasVoiceCallAccess(request)) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
   return Response.json({
     ok: true,
     voice: getVoiceStatus(),
-    calls: await listVoiceSummaries(),
+    calls: (await listVoiceSummaries()).map(toPublicVoiceSummary),
   });
 }
 
@@ -42,7 +74,12 @@ export async function POST(request: Request) {
         spareTime,
         coordinatorNumber,
       });
-      return Response.json({ ok: true, ...result, voice: getVoiceStatus() });
+      return Response.json({
+        ok: true,
+        ...result,
+        call: toPublicVoiceSummary(result.call),
+        voice: getVoiceStatus(),
+      });
     }
     if (action === "approve") {
       const callId = typeof body?.callId === "string" ? body.callId : "";
@@ -54,12 +91,21 @@ export async function POST(request: Request) {
         town,
         coordinatorNumber,
       });
-      return Response.json({ ok: true, ...result, voice: getVoiceStatus() });
+      return Response.json({
+        ok: true,
+        ...result,
+        call: toPublicVoiceSummary(result.call),
+        voice: getVoiceStatus(),
+      });
     }
     if (action === "deny") {
       const callId = typeof body?.callId === "string" ? body.callId : "";
       const call = await denySiteCall(callId);
-      return Response.json({ ok: true, call, voice: getVoiceStatus() });
+      return Response.json({
+        ok: true,
+        call: toPublicVoiceSummary(call),
+        voice: getVoiceStatus(),
+      });
     }
     return Response.json({ ok: false, error: "action must be request, approve, or deny" }, { status: 400 });
   } catch (error) {

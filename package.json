@@ -15,6 +15,7 @@
     "mastra:dev": "mastra dev --dir mastra",
     "mastra:studio": "mastra studio --dir mastra",
     "nebius:ping": "node --env-file=.env.local --experimental-strip-types scripts/nebius-ping.ts",
+    "talaia:ping": "node --env-file=.env.local --experimental-strip-types scripts/talaia-ping.ts",
     "telegram:ping": "node --env-file=.env.local --experimental-strip-types scripts/telegram-ping.ts",
     "firms:ping": "node --env-file=.env.local --experimental-strip-types scripts/firms-ping.ts",
     "demo:reset": "node --env-file=.env.local --experimental-strip-types scripts/demo-reset.ts",

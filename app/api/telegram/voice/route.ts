@@ -2,6 +2,7 @@ import { saveReportedConfirmation } from "@/lib/db";
 import { structurePhoneReport } from "@/lib/nebius-parse";
 import { transcribeAudio } from "@/lib/slng";
 import { downloadTelegramFile } from "@/lib/telegram";
+import { saveTelegramVoiceResult } from "@/lib/telegram-voice-store";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,18 @@ export async function POST(request: Request) {
       count: report.count,
       hasTransport: report.truck,
       channel: "telegram",
+      transcript: report.transcript,
+      selfCorrected: report.self_corrected,
+      discardedCount: report.discardedCount,
+      correctionCopy: report.correctionCopy,
     });
   }
 
-  return Response.json({ ok: true, transcript: stt.transcript, report, fallback: stt.fallback });
+  const requestId = saveTelegramVoiceResult({
+    transcript: stt.transcript,
+    report,
+    fallback: stt.fallback,
+  });
+  // Recommended by Norma — fixed with Cursor Grok 4.6 via Cursor
+  return Response.json({ ok: true, requestId });
 }

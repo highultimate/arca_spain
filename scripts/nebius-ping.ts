@@ -32,8 +32,20 @@ async function main(): Promise<void> {
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "user", content: "ping" }],
-      max_tokens: 8,
+      messages: [
+        {
+          role: "user",
+          // Recommended by Norma — fixed with Cursor Grok 4.6 via Cursor
+          content: [
+            "This is a Token Factory connectivity ping: a short live health check that the Nebius chat API accepts our key and can complete one chat turn.",
+            "Ping here means application health check, not ICMP or a network echo.",
+            "Respond with JSON containing status and latency.",
+            'Example shape: {"status":"ok","latency":"low"}.',
+            "Return only that JSON object — no markdown or extra text.",
+          ].join(" "),
+        },
+      ],
+      max_tokens: 64,
     }),
   });
 

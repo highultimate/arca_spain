@@ -25,13 +25,15 @@ ICGC source note on municipality points: https://www.icgc.cat/ca/Descarregues/Ca
 |---|---|---|---|
 | Extra Bages farms (capacity ≠ animals present) | Registre d'explotacions ramaderes (`7bpt-5azk`) | Departament d'Agricultura, Ramaderia, Pesca i Alimentació | https://analisi.transparenciacatalunya.cat/d/7bpt-5azk |
 
-## Fire
+## Fire and exposure
 
 | What ARCA uses | Source | Original website |
 |---|---|---|
 | Live Catalonia hotspots | Deepfire | https://deepfire.co |
+| Hotspot cross-check | NASA FIRMS | https://firms.modaps.eosdis.nasa.gov |
+| What is inside the fire shape (schools, care homes, hospitals, farms, contacts) | Talaia | https://talaia.up.railway.app |
 
-Hour rings on the coordinator map are a labelled DEMO ensemble. They are not attached Deepfire spread polygons.
+Hour rings on the coordinator map are a labelled DEMO ensemble. They are not attached Deepfire spread polygons. Talaia is queried against those demo rings. If `TALAIA_API_KEY` is missing or rejected, ranking falls back to the official Bages snapshot above.
 
 ## Other layers in the demo
 

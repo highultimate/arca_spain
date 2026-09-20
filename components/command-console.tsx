@@ -28,6 +28,16 @@ const CommandMap = dynamic(() => import("@/components/command-map"), {
 
 const PRIMARY_ACTIONS: ProtectiveAction[] = ["confine", "evacuate"];
 const SECONDARY_ACTIONS: ProtectiveAction[] = ["monitor", "latent"];
+const SAFE_PROTOCOLS = ["https:", "http:", "mailto:"];
+
+function sanitizeUrl(url: string): string {
+  try {
+    const { protocol } = new URL(url);
+    return SAFE_PROTOCOLS.includes(protocol) ? url : "#";
+  } catch {
+    return "#";
+  }
+}
 
 const tierRowClass: Record<UrgencyTier, string> = {
   late: "hover:bg-red-50",
@@ -457,14 +467,14 @@ function FocusCard({
           <div className="mt-2 flex flex-col gap-1">
             {site.sourceUrl ? (
               <p>
-                <a className="underline" href={site.sourceUrl} target="_blank" rel="noreferrer">
+                <a className="underline" href={sanitizeUrl(site.sourceUrl)} target="_blank" rel="noreferrer">
                   {site.attribution} · {site.sourceRecordId}
                 </a>
                 {site.capacitySourceUrl ? (
                   <>
                     {" "}
                     ·{" "}
-                    <a className="underline" href={site.capacitySourceUrl} target="_blank" rel="noreferrer">
+                    <a className="underline" href={sanitizeUrl(site.capacitySourceUrl)} target="_blank" rel="noreferrer">
                       Capacity source
                     </a>
                   </>

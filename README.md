@@ -43,6 +43,8 @@ Studio / API: [http://localhost:4111](http://localhost:4111).
 
 ```bash
 npm run nebius:ping
+npm run talaia:ping
+npm run firms:ping
 npm run telegram:ping
 npm run data:refresh
 ```
@@ -108,6 +110,7 @@ You do **not** need `mastra:dev` just to open the coordinator UI at `:3000`. You
 Needed for a full local demo:
 
 - `DEEPFIRE_CLIENT_ID` / `DEEPFIRE_CLIENT_SECRET` — live hotspots and the static heat-source mask; UI stays on demo polygons if this fails
+- `TALAIA_API_KEY` / `TALAIA_URL` — live exposure inside the fire shape; falls back to the Bages snapshot if this fails
 - `FIRMS_MAP_KEY` — NASA FIRMS cross-check. Free and instant: <https://firms.modaps.eosdis.nasa.gov/api/map_key/>. Unset means single-source hotspots and a visible alert. Optional: `FIRMS_SENSORS` (default `VIIRS_NOAA20_NRT,VIIRS_SNPP_NRT`), `FIRMS_DAY_RANGE` (default `1`)
 - `EFFIS_GEOJSON_URL` — optional third feed. Any GeoJSON point layer of active fires. Copernicus EFFIS serves its current-situation layer from `maps.effis.emergency.copernicus.eu`, which is not reachable from every network, so this is configuration rather than a constant
 - Cross-check tuning: `CROSSCHECK_MATCH_KM` (3), `CROSSCHECK_MATCH_HOURS` (24), `CROSSCHECK_SITE_KM` (12)
@@ -133,24 +136,26 @@ Sunday setup: (1) `COORDINATOR_TELEGRAM_CHAT_ID` after the coordinator messages 
 
 ## Facilities data
 
-Schools, residential care, primary care (CAPs) and the hospital are **not** hardcoded in the UI, and the running app does **not** call those APIs on every page load.
+With `TALAIA_API_KEY`, ARCA asks Talaia what is inside the demo fire rings (schools, care homes, hospitals, CAPs, farms, contacts). Capacity is registered, not occupancy.
 
-They come from public open-data APIs. **No API key is required.** `npm run data:refresh` (Python 3, internet) downloads them into `data/official/facilities.json`. The coordinator UI reads that local snapshot. The checked-in file covers Bages. Hospital bed counts come from the Ministry of Health public Excel (Catálogo Nacional de Hospitales 2025), attached only when the catalogue name match is unique.
+If that key is missing or rejected, schools, residential care, primary care (CAPs) and the hospital come from public open-data APIs. **No API key is required.** `npm run data:refresh` (Python 3, internet) downloads them into `data/official/facilities.json`. The coordinator UI reads that local snapshot. The checked-in file covers Bages. Hospital bed counts come from the Ministry of Health public Excel (Catálogo Nacional de Hospitales 2025), attached only when the catalogue name match is unique.
 
 Approximate locations stay labelled and are excluded from fire-arrival calculations. Capacity is shown with its source; it is not current occupancy. Details, licences and flags: `data/official/README.md`.
 
 ## Architecture
 
 ```
-Deepfire ──────────┐
-Official snapshot ─┼─► ranking engine (plain TypeScript) + coordinator UI
-Livestock registry ┤     Mastra agent (Nebius) + Telegram
-Residents ─────────┘     LibSQL: coordinators, residents, reported counts, simulation ids
+Deepfire + FIRMS ─┐
+Talaia exposure ──┤
+Official snapshot ┼─► ranking engine (plain TypeScript) + coordinator UI
+Livestock registry┤     Mastra agent (Nebius) + Telegram
+Residents ────────┘     LibSQL: coordinators, residents, reported counts, simulation ids
 ```
 
 - **Deepfire** — token + Catalonia hotspots + the static heat-source mask (`deepfire:static-heat-sources`). Hour rings on the map are a labelled DEMO ensemble.
+- **Talaia** — live registry exposure inside those rings (`TALAIA_API_KEY`). If the key is missing or rejected, ranking uses the official Bages snapshot.
 - **NASA FIRMS** — second opinion on every hotspot. Google Maps has no public fire-alerts API and MITECO publishes statistics (EGIF), not a live active-fire endpoint; FIRMS is the machine-readable feed both of those products rest on.
-- **Official facilities** — public SODA APIs + Ministry Excel, saved by `npm run data:refresh`. No key. App reads `data/official/facilities.json`.
+- **Official facilities** — public SODA APIs + Ministry Excel, saved by `npm run data:refresh`. No key. App reads `data/official/facilities.json`. Fallback when Talaia is down.
 - **Livestock registry** — public SODA `7bpt-5azk`. Capacity ≠ animals present.
 - **OSM** — leftover care-home seed, separate from the official snapshot. Not the pet-evac list. Not fetched live.
 - **Pet shelters** — `config/shelters.json`. Edit the file. Labelled in the UI as configured by the coordinator.

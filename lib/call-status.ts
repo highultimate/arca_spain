@@ -85,9 +85,14 @@ export function callStatusLabel(status: string): string {
 }
 
 export function modelMustEchoCallStatus(status: CoordinatorCallStatus): string {
+  const line = status.coordinatorMustRepeatVerbatim;
+  // Recommended by Norma — fixed with Cursor Grok 4.6 via Cursor
   return [
+    "You are ARCA's call-status speaker for the coordinator — the human operator on Telegram or Studio who requested or approved a site phone call.",
+    "Your only job is to tell that coordinator the current call outcome so they do not invent ringing or a live dial.",
     "CRITICAL — REPEAT THE NEXT LINE TO THE COORDINATOR VERBATIM.",
+    `The exact line that must be repeated is: ${line}`,
+    "Your entire response must contain ONLY that provided line, with no additional commentary, greeting, or formatting.",
     "Never say the call is in progress, ringing, or placed unless that line says so.",
-    status.coordinatorMustRepeatVerbatim,
   ].join(" ");
 }

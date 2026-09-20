@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { resolveCallPermission, demoSiteAliases } from "./call-gate";
 import { officialPhoneForSite } from "./official-facilities";
+import { talaiaPhoneForSite } from "./talaia";
 import { coordinatorPhone, phoneForSite } from "./demo-cast";
 import { formatCoordinatorCallStatus } from "./call-status";
 import {
@@ -81,6 +82,26 @@ export function toVoiceSummary(row: VoiceCallRow): VoiceCallSummary {
   };
 }
 
+/** Public DTO for HTTP: status and retry only — no phone transcript or corrections. */
+export function toPublicVoiceSummary(
+  row: VoiceCallSummary,
+): Omit<VoiceCallSummary, "transcript" | "selfCorrected" | "discardedCount" | "correctionCopy"> {
+  // Recommended by Norma — fixed with Cursor Grok 4.6 via Cursor
+  return {
+    id: row.id,
+    siteId: row.siteId,
+    toLast4: row.toLast4,
+    status: row.status,
+    uiStatus: row.uiStatus,
+    attempt: row.attempt,
+    emptyHangup: row.emptyHangup,
+    flagged: row.flagged,
+    nextRetryAt: row.nextRetryAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
 export async function listVoiceSummaries(): Promise<VoiceCallSummary[]> {
   try {
     return (await listVoiceCalls()).map(toVoiceSummary);
@@ -95,7 +116,12 @@ export async function requestSiteCall(input: {
   coordinatorNumber?: string | null;
   spareTime?: number | null;
 }): Promise<{ call: VoiceCallSummary; detail: string }> {
-  const toNumber = input.toNumber.trim() || phoneForSite(input.siteId) || await officialPhoneForSite(input.siteId) || "";
+  const toNumber =
+    input.toNumber.trim() ||
+    phoneForSite(input.siteId) ||
+    (await talaiaPhoneForSite(input.siteId)) ||
+    (await officialPhoneForSite(input.siteId)) ||
+    "";
   if (!toNumber) {
     throw new Error("Coordinator must enter a number. No phone on file for this site.");
   }

@@ -115,7 +115,7 @@ export type SiteInput = {
   confirmationDiscardedCount?: number | null;
   confirmationCorrectionCopy?: string | null;
   capacityUpdatedAt: string | null;
-  source: "registry" | "resident" | "osm" | "demo";
+  source: "registry" | "resident" | "osm" | "demo" | "talaia";
   shelterHint: string;
   notes: string;
   /** Server seed only. Stripped from the command API. */

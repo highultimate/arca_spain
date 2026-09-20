@@ -17,7 +17,8 @@ import { ensureArcaSchema, listLatestConfirmations, listProtectiveActions, listR
 import { rankSites } from "./ranking";
 import { fetchRegistryFarms } from "./registry";
 import { applyConfiguredShelters, loadShelterConfig, shelterSourceDetail } from "./shelters";
-import type { CheckedHotspot, CommandState, EvacConfig, FeedDetection, SiteInput } from "./types";
+import { assembleInventory, fetchTalaiaExposure } from "./talaia";
+import type { CommandState, EvacConfig, FeedDetection, SiteInput } from "./types";
 import { contactPolicyPublic, listVoiceSummaries, processDueVoiceRetries } from "./voice-calls";
 import { getVoiceStatus } from "./voice-status";
 import { loadContactPolicy } from "./contact-policy";
@@ -50,13 +51,15 @@ export async function getCommandState(): Promise<CommandState> {
     alerts.push(`ARCA LibSQL could not open (${message}). Rankings still run in memory.`);
   }
 
-  const [deepfire, registry, heat, firms, effis, official] = await Promise.all([
+  const polygons = demoPolygons();
+  const [deepfire, registry, heat, firms, effis, official, talaia] = await Promise.all([
     fetchDeepfireHotspots(),
     fetchRegistryFarms(),
     fetchStaticHeatSources(),
     fetchFirmsDetections(),
     fetchEffisDetections(),
     loadOfficialFacilities(),
+    fetchTalaiaExposure(polygons),
   ]);
 
   // Cross-check: a hotspot two independent feeds agree on outranks the clock.
@@ -80,10 +83,18 @@ export async function getCommandState(): Promise<CommandState> {
     // Schema already reported if the file could not open.
   }
   const sites: SiteInput[] = applyConfiguredShelters(
-    applyReportedConfirmations([...seeded, ...extra, ...official.sites], confirmations),
+    applyReportedConfirmations(
+      assembleInventory({
+        seeded,
+        registry: extra,
+        official: official.sites,
+        talaia: talaia.sites,
+        talaiaOk: talaia.status.ok,
+      }),
+      confirmations,
+    ),
     shelterConfig,
   );
-  const polygons = demoPolygons();
   const { ranked, watch } = rankSites(sites, polygons, {
     ensembleMembers: config.ensembleMembers,
     horizonHours: config.horizonHours,
@@ -145,7 +156,8 @@ export async function getCommandState(): Promise<CommandState> {
       `${onChimney.length} hotspot${onChimney.length === 1 ? " sits" : "s sit"} on a known static heat source. Drawn, never promoted.`,
     );
   }
-  if (!official.status.ok) alerts.push(official.status.detail);
+  if (!talaia.status.ok) alerts.push(talaia.status.detail);
+  if (!talaia.status.ok && !official.status.ok) alerts.push(official.status.detail);
 
   return {
     generatedAt,
@@ -167,7 +179,13 @@ export async function getCommandState(): Promise<CommandState> {
     watch: sortByCorroboration(corroborateSites(keepTimeRank(withChoice(watch)), hotspots)),
     watchIfFewerThanRuns: loadRankingPolicy().watchIfFewerThanRuns,
     sources: [
-      official.status,
+      talaia.status,
+      {
+        ...official.status,
+        detail: talaia.status.ok
+          ? `${official.status.detail} Not used for ranking while Talaia is live.`
+          : official.status.detail,
+      },
       {
         id: "deepfire",
         label: "Deepfire hotspots",
